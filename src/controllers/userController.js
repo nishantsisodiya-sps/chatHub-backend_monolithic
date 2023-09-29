@@ -1,12 +1,14 @@
 const User = require("../models/userModel");
+const {upload} = require("../utils/upload")
 
 //=============================>>>>>>>>> GET USER PROFILE <<<<<<<<<<=====================================
 
 exports.getUserProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
+    console.log(userId);
 
-    const user = await User.findOne({ userId });
+    const user = await User.findById(userId);
     
     if (!user) {
       res.status(404).json({ msg: "User not found" });
@@ -92,5 +94,43 @@ exports.deleteUser = async (req, res) => {
   } catch (error) {
     res.status(500).json({msg : "Error while deleting user"})
     console.log(error);
+  }
+};
+
+
+
+
+//============================>>>>>>>>> User Profile pic Upload <<<<<<<<<<=================================
+
+
+const singleProfilePictureUpload = upload.single('profilePicture');
+
+exports.uploadProfilePicture = async (req, res) => {
+  const userId = req.params.userId;
+ 
+
+  try {
+    // Upload the profile picture
+    singleProfilePictureUpload(req, res, async (err) => {
+      if (err) {
+        console.error('Error uploading profile picture:', err);
+        return res.status(500).json({ error: 'Error uploading profile picture' });
+      }
+  
+      const user = await User.findById(userId);
+   
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+     
+      // Update the profile picture field in the user document
+      user.profilePicture = req.file.location;
+      await user.save();
+
+      res.status(200).json({ message: 'Profile picture uploaded successfully' }); 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating profile picture.' });
   }
 };
