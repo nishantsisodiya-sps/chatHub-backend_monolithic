@@ -5,8 +5,8 @@ const multerS3 = require('multer-s3');
 // Initialize the S3 client
 const s3 = new S3Client({
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_SECRET_KEY,
+    accessKeyId: process.env.AWS_ACCESS_KEY1,
+    secretAccessKey: process.env.AWS_SECRET_KEY1,
   },
   region: 'ap-south-1',
 });

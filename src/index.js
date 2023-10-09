@@ -25,7 +25,7 @@ app.use('/users' , userRoutes)
 
 //Mongo connection
 mongoose
-  .connect(process.env.MONGO_URI, {})
+  .connect(process.env.MONGO_URI1, {})
   .then(() => {
     console.log("Connected to MongoDB Atlas");
   })

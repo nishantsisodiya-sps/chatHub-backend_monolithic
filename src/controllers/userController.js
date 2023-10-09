@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
-const {upload} = require("../utils/upload")
+const {upload} = require("../utils/upload");
+const singleProfilePictureUpload = upload.single('profilePicture');
 
 //=============================>>>>>>>>> GET USER PROFILE <<<<<<<<<<=====================================
 
@@ -102,8 +103,6 @@ exports.deleteUser = async (req, res) => {
 
 //============================>>>>>>>>> User Profile pic Upload <<<<<<<<<<=================================
 
-
-const singleProfilePictureUpload = upload.single('profilePicture');
 
 exports.uploadProfilePicture = async (req, res) => {
   const userId = req.params.userId;
