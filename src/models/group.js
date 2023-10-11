@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const validator = require("validator");
 
 
-const groupSchema = mongoose.model({
+const groupSchema = mongoose.Schema({
 
   name: {
     type: String,
@@ -32,6 +32,6 @@ const groupSchema = mongoose.model({
 });
 
 
-module.exports = mongoose.model('Groups' , )
+module.exports = mongoose.model('Groups' , groupSchema)
 
 

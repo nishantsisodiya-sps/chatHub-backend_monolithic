@@ -1,80 +1,122 @@
-const Group = require('../models/group');
-
+const Group = require('../models/group')
+const Users = require('../models/userModel')
+const { uploadGroupProfilePic } = require('../utils/upload')
+const singleGroupProfilePictureUpload =
+  uploadGroupProfilePic.single('profilePicture')
 //==========================>>>>>>>>> TO CREATE A NEW GROUP <<<<<<<<<<===============================
 
-
 exports.createGroup = async (req, res) => {
-    try {
-      const { name, members , description } = req.body;
-      const createdBy = req.params.id;
-      members.push(createdBy)
-      const newGroup = new Group({ name, members, description, createdBy });
-      newGroup.admin.push(createdBy)
-      await newGroup.save();
-      res.status(201).json({msg : 'Group created Successfully'});
-    } catch (error) {
-      console.error('Error creating group', error.message);
-      res.status(500).json({ error: 'Error creating group' });
+  try {
+    console.log(req.params)
+    const { name, members, description } = req.body
+    const createdBy = req.params.userId
+
+    const isuser = await Users.findById(createdBy)
+    if (!isuser) {
+      res.status(404).json({ msg: 'No user Found' })
     }
-  };
-
-
+    members.push(createdBy)
+    const newGroup = new Group({ name, members, description, createdBy })
+    newGroup.admin.push(createdBy)
+    await newGroup.save()
+    res.status(201).json({ msg: 'Group created Successfully' })
+  } catch (error) {
+    console.error('Error creating group', error.message)
+    res.status(500).json({ error: 'Error creating group' })
+  }
+}
 
 //=========================>>>>>>>>> TO UPDATE GROUP PROFILE PICTURE <<<<<<<<<<===========================
 
-
-const singleGroupProfilePictureUpload = uploadGroupProfilePic.single('profilePicture');
-  
 exports.updateGroupProfilePicture = async (req, res) => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = req.params.groupId
 
     // Find the group by ID
-    const group = await Group.findById(groupId);
+    const group = await Group.findById(groupId)
 
     if (!group) {
-      return res.status(404).json({ error: 'Group not found.' });
+      return res.status(404).json({ error: 'Group not found.' })
     }
 
     // Upload the new group profile picture
-    singleGroupProfilePictureUpload(req, res, async (err) => {
+    singleGroupProfilePictureUpload(req, res, async err => {
       if (err) {
-        console.error('Error uploading group profile picture:', err);
-        return res.status(500).json({ error: 'Error uploading group profile picture' });
+        console.error('Error uploading group profile picture:', err)
+        return res
+          .status(500)
+          .json({ error: 'Error uploading group profile picture' })
       }
 
-
       if (req.file) {
-        group.profilePicture = req.file.location;
+        group.profilePicture = req.file.location
       }
 
       // Save the updated group
-      await group.save();
+      await group.save()
 
-      res.status(200).json({ message: 'Group profile picture uploaded successfully' });
-    });
+      res
+        .status(200)
+        .json({ message: 'Group profile picture uploaded successfully' })
+    })
   } catch (error) {
-    console.error('Error updating group profile picture', error.message);
-    res.status(500).json({ error: 'Error updating group profile picture' });
+    console.error('Error updating group profile picture', error.message)
+    res.status(500).json({ error: 'Error updating group profile picture' })
   }
-};
-
-
+}
 
 //=============================>>>>>>>>> TO UPDATE GROUP NAME <<<<<<<<<<===============================
-
 
 exports.updateGroup = async (req, res) => {
   try {
     const groupId = req.params.groupId;
-    const { name } = req.body;
+    const { name, members, description } = req.body;
 
     const group = await Group.findById(groupId);
 
     if (!group) {
       return res.status(404).json({ error: 'Group not found.' });
     }
-    group.name = name;
+
+    if (name !== undefined) {
+      group.name = name;
+    }
+
+    if (description !== undefined) {
+      group.description = description;
+    }
+
+    if (members !== undefined) {
+      if (Array.isArray(members)) {
+        const membersToAdd = [];
+        const membersAlreadyPresent = [];
+
+        for (const member of members) {
+          if (!group.members.includes(member)) {
+            membersToAdd.push(member);
+          } else {
+            membersAlreadyPresent.push(member);
+          }
+        }
+
+        if (membersToAdd.length > 0) {
+          group.members = group.members.concat(membersToAdd);
+        }
+
+        let responseMsg = 'Members added to the group';
+        if (membersAlreadyPresent.length > 0) {
+          responseMsg += ` and members with the following user IDs are already present: ${membersAlreadyPresent.join(', ')}`;
+        }
+
+        return res.status(200).json({ msg: responseMsg });
+      } else if (!group.members.includes(members)) {
+        group.members.push(members);
+        return res.status(200).json({ msg: 'Member added to the group' });
+      } else {
+        return res.status(200).json({ msg: 'Member is already in the group' });
+      }
+    }
+
     await group.save();
 
     res.status(200).json(group);
@@ -86,18 +128,75 @@ exports.updateGroup = async (req, res) => {
 
 
 
+
 //==========================>>>>>>>>> TO GET THE GROUPS OF A USER <<<<<<<<<<=============================
 
-  exports.getGroupsForUser = async (req, res) => {
-    try {
-      const userId = req.params.userId;
-  
-      // Find groups where the user is a member
-      const groups = await Group.find({ members: userId });
-  
-      res.status(200).json(groups);
-    } catch (error) {
-      console.error('Error fetching groups for user', error.message);
-      res.status(500).json({ error: 'Error fetching groups for user' });
+exports.getGroupsForUser = async (req, res) => {
+  try {
+    const userId = req.params.userId
+
+    // Find groups where the user is a member
+    const groups = await Group.find({ members: userId })
+
+    res.status(200).json(groups)
+  } catch (error) {
+    console.error('Error fetching groups for user', error.message)
+    res.status(500).json({ error: 'Error fetching groups for user' })
+  }
+}
+
+//==========================>>>>>>>>> TO Create Admin in a Group <<<<<<<<<<=============================
+
+exports.createAdmin = async (req, res) => {
+  try {
+    const groupId = req.params.groupId
+    const userId = req.body
+
+    const group = await Group.findById(groupId)
+    if (!group) {
+      res.status(404).json({ msg: 'Group Not Found' })
     }
-  };
+
+    const user = await Users.findById(userId)
+    if (!user) {
+      res.status(404).json({ msg: 'User Not Found' })
+    }
+
+    group.admin.push(...userId)
+    res.status(201).json({ msg: 'Admin created Successfully' })
+  } catch (error) {
+    console.error('Error Creating Admin', error.message)
+    res.status(500).json({ error: 'Error While creating Admin' })
+  }
+}
+
+//==========================>>>>>>>>> TO Remove Admin from the Group <<<<<<<<<<=============================
+
+exports.removeAdmin = async (req, res) => {
+  try {
+    console.log('jhh');
+    console.log(req.body);
+    const groupId = req.params.groupId;
+    const userId = req.body;
+
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      return res.status(404).json({ msg: 'Group Not Found' });
+    }
+
+    const indexOfUser = group.admin.indexOf(userId);
+
+    if (indexOfUser === -1) {
+      return res.status(404).json({ msg: 'User is not an admin of the group' });
+    }
+
+    group.admin.splice(indexOfUser, 1);
+    await group.save();
+
+    res.status(200).json({ msg: 'Admin Removed Successfully' });
+  } catch (error) {
+    console.error('Error while Removing Admin', error.message);
+    res.status(500).json({ error: 'Error While Removing Admin' });
+  }
+};

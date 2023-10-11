@@ -17,11 +17,13 @@ app.use(cors());
 
 //Routes imports
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes")
+const userRoutes = require("./routes/userRoutes");
+const groupRoutes = require("./routes/groupRoutes")
 
 //Routes
 app.use("/auth", authRoutes);
-app.use('/users' , userRoutes)
+app.use('/users' , userRoutes);
+app.use('/groups' , groupRoutes)
 
 //Mongo connection
 mongoose
