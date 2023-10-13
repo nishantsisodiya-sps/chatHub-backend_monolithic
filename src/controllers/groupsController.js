@@ -108,16 +108,19 @@ exports.updateGroup = async (req, res) => {
           responseMsg += ` and members with the following user IDs are already present: ${membersAlreadyPresent.join(', ')}`;
         }
 
+        await group.save(); 
+
         return res.status(200).json({ msg: responseMsg });
       } else if (!group.members.includes(members)) {
         group.members.push(members);
+        await group.save(); 
         return res.status(200).json({ msg: 'Member added to the group' });
       } else {
         return res.status(200).json({ msg: 'Member is already in the group' });
       }
     }
 
-    await group.save();
+    await group.save(); 
 
     res.status(200).json(group);
   } catch (error) {
@@ -125,6 +128,7 @@ exports.updateGroup = async (req, res) => {
     res.status(500).json({ error: 'Error updating group' });
   }
 };
+
 
 
 
@@ -149,35 +153,8 @@ exports.getGroupsForUser = async (req, res) => {
 
 exports.createAdmin = async (req, res) => {
   try {
-    const groupId = req.params.groupId
-    const userId = req.body
-
-    const group = await Group.findById(groupId)
-    if (!group) {
-      res.status(404).json({ msg: 'Group Not Found' })
-    }
-
-    const user = await Users.findById(userId)
-    if (!user) {
-      res.status(404).json({ msg: 'User Not Found' })
-    }
-
-    group.admin.push(...userId)
-    res.status(201).json({ msg: 'Admin created Successfully' })
-  } catch (error) {
-    console.error('Error Creating Admin', error.message)
-    res.status(500).json({ error: 'Error While creating Admin' })
-  }
-}
-
-//==========================>>>>>>>>> TO Remove Admin from the Group <<<<<<<<<<=============================
-
-exports.removeAdmin = async (req, res) => {
-  try {
-    console.log('jhh');
-    console.log(req.body);
     const groupId = req.params.groupId;
-    const userId = req.body;
+    const userId = req.body.userId;
 
     const group = await Group.findById(groupId);
 
@@ -185,6 +162,45 @@ exports.removeAdmin = async (req, res) => {
       return res.status(404).json({ msg: 'Group Not Found' });
     }
 
+    const user = await Users.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User Not Found' });
+    }
+
+    if (!group.members.includes(userId)) {
+      return res.status(400).json({ msg: 'User is not a member of the group' });
+    }
+
+    if (group.admin.includes(userId)) {
+      return res.status(400).json({ msg: 'User is already an admin of the group' });
+    }
+
+    group.admin.push(userId);
+    await group.save();
+
+    res.status(201).json({ msg: 'Admin created successfully' });
+  } catch (error) {
+    console.error('Error Creating Admin', error.message);
+    res.status(500).json({ error: 'Error while creating Admin' });
+  }
+};
+
+//==========================>>>>>>>>> TO Remove Admin from the Group <<<<<<<<<<=============================
+
+exports.removeAdmin = async (req, res) => {
+  try {
+  
+    const groupId = req.params.groupId;
+    const {userId} = req.body;
+   
+    const group = await Group.findById(groupId);
+   
+
+    if (!group) {
+      return res.status(404).json({ msg: 'Group Not Found' });
+    }
+   
     const indexOfUser = group.admin.indexOf(userId);
 
     if (indexOfUser === -1) {
